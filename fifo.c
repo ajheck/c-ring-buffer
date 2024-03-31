@@ -1,23 +1,113 @@
 #include "fifo.h"
+#include <string.h>
 
-Fifo_t* Fifo_Init(FifoIndex_t elementCount, FifoSize_t elementSize, uint8_t *buffer, size_t bufferSize)
+
+// Distance from a to b with a wrap
+#define wrapDistance(a, b, wrap) (((a) <= (b)) ? ((b) - (a)) : ((wrap) - (a) + (b)))
+
+// Compute a + 1 with a wrap
+#define wrapIncrement(a, wrap) (((a) + 1 < (wrap)) ? ((a) + 1) : 0)
+
+// Cast arbitrary type to fifo pointer
+#define pFifo(fifo) ((Fifo_t *)(fifo))
+
+// Compute the address of the start of a fifo's entry data
+#define getDataPtr(fifo) ((void *)(fifo) + sizeof(Fifo_t))
+
+// Compute the address of a fifo's present writing pointer
+#define getWriterPtr(fifo) ((void *)(getDataPtr(fifo) + pFifo(fifo)->writer * pFifo(fifo)->entrySize))
+
+// Compute the address of a fifo's present reading pointer
+#define getReaderPtr(fifo) ((void *)(getDataPtr(fifo) + pFifo(fifo)->reader * pFifo(fifo)->entrySize))
+
+// Compute the number of entries in a fifo
+#define getEntryCount(fifo) ( (isFull(fifo)) ? pFifo(fifo)->maxEntryCount : wrapDistance(pFifo(fifo)->reader, pFifo(fifo)->writer, pFifo(fifo)->maxEntryCount))
+
+// If set, the fifo is full
+#define STATUS_BIT_FULL_POS (0)
+#define STATUS_BIT_FULL_MASK (1 << STATUS_BIT_FULL_POS)
+
+#define isFull(fifo) (pFifo(fifo)->status & STATUS_BIT_FULL_MASK)
+#define setFull(fifo) (pFifo(fifo)->status |= STATUS_BIT_FULL_MASK)
+#define clearFull(fifo) (pFifo(fifo)->status &= ~STATUS_BIT_FULL_MASK)
+
+Fifo_t *Fifo_Init(FifoIndex_t entryCount, FifoSize_t entrySize, uint8_t *buffer, size_t bufferSize)
 {
-    if(NULL == buffer)
+    if (0 == entryCount || 0 == entrySize || NULL == buffer || 0 == bufferSize)
     {
         return NULL;
     }
 
-    size_t requiredSize = FIFO_COMPUTE_SIZE(elementCount, elementSize);
-    if( requiredSize > bufferSize)
+    size_t requiredSize = FIFO_COMPUTE_SIZE(entryCount, entrySize);
+    if (requiredSize > bufferSize)
     {
         return NULL;
     }
 
     Fifo_t *fifo = (Fifo_t *)buffer;
-    fifo->elemSize = elementSize;
-    fifo->count = elementCount;
+    fifo->entrySize = entrySize;
+    fifo->maxEntryCount = entryCount;
     fifo->reader = 0;
     fifo->writer = 0;
+    fifo->status = 0;
 
     return fifo;
+}
+
+int Fifo_EntrySize(Fifo_t *fifo)
+{
+    return (NULL == fifo) ? -1 : fifo->entrySize;
+}
+
+int Fifo_EntryCount(Fifo_t *fifo)
+{
+    return (NULL == fifo) ? -1 : getEntryCount(fifo);
+}
+
+int Fifo_Enqueue(Fifo_t *fifo, void *entry)
+{
+    if (NULL == fifo || NULL == entry)
+    {
+        return -1;
+    }
+
+    if(isFull(fifo))
+    {
+        // For now, fail to enqueue on full fifo
+        // TODO: Add support for overflow detection when dequeuing
+        // TODO: Add support for configuring overflow behavior (overwrite vs enqueue failure)
+        return FIFO_RET_OVERFLOW;
+    }
+
+    memcpy(getWriterPtr(fifo), entry, fifo->entrySize);
+    if( getEntryCount(fifo) == fifo->maxEntryCount - 1 )
+    {
+        // This enqueue caused the buffer to be filled; mark it as full, THEN increment the writer
+        setFull(fifo);
+    }
+    
+    fifo->writer = wrapIncrement(fifo->writer, fifo->maxEntryCount);
+
+    FifoIndex_t entryCount = getEntryCount(fifo);
+    return getEntryCount(fifo);
+}
+
+int Fifo_Dequeue(Fifo_t *fifo, void *entry)
+{
+    if (NULL == fifo || NULL == entry)
+    {
+        return -1;
+    }
+
+    if (getEntryCount(fifo) == 0)
+    {
+        return FIFO_RET_NO_DATA;
+    }
+
+    memcpy(entry, getReaderPtr(fifo), fifo->entrySize);
+    fifo->reader = wrapIncrement(fifo->reader, fifo->maxEntryCount);
+    // Only clear the full status once there is a free space
+    clearFull(fifo);
+
+    return getEntryCount(fifo);
 }
