@@ -92,9 +92,17 @@ int Fifo_Enqueue(Fifo_t *fifo, void *entry);
  * @brief Read data from the fifo
  *
  * @param fifo Fifo to dequeue data from
- * @param entry Location to copy data to
+ * @param entry Location to copy data to; if NULL, no copy is performed, but the entry is still dequeued
  * @return int negative value on failure to dequeue; otherwise, the count of enqueued entries after the dequeue is completed.
  */
 int Fifo_Dequeue(Fifo_t *fifo, void *entry);
+
+/**
+ * @brief Peek the next entry in the fifo.  Useful for zero-copy usage of data in the fifo.
+ * 
+ * @param fifo Fifo to peek
+ * @return void* pointer to peeked entry; NULL if error or no data to peek.
+ */
+void *Fifo_Peek(Fifo_t *fifo);
 
 #endif // include guard

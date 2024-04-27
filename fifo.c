@@ -56,12 +56,12 @@ Fifo_t *Fifo_Init(FifoIndex_t entryCount, FifoSize_t entrySize, uint8_t *buffer,
 
 int Fifo_EntrySize(Fifo_t *fifo)
 {
-    return (NULL == fifo) ? -1 : fifo->entrySize;
+    return (NULL == fifo) ? FIFO_RET_INVALID_ARG : fifo->entrySize;
 }
 
 int Fifo_EntryCount(Fifo_t *fifo)
 {
-    return (NULL == fifo) ? -1 : getEntryCount(fifo);
+    return (NULL == fifo) ? FIFO_RET_INVALID_ARG : getEntryCount(fifo);
 }
 
 int Fifo_Enqueue(Fifo_t *fifo, void *entry)
@@ -112,4 +112,9 @@ int Fifo_Dequeue(Fifo_t *fifo, void *entry)
     clearFull(fifo);
 
     return getEntryCount(fifo);
+}
+
+void *Fifo_Peek(Fifo_t *fifo)
+{
+    return (fifo != NULL && getEntryCount(fifo) != 0) ? getReaderPtr(fifo) : NULL;
 }
