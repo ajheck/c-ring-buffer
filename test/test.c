@@ -53,7 +53,6 @@ MU_TEST(test_Fifo_Dequeue)
 
     // Argument checks
     mu_assert_int_eq(FIFO_RET_INVALID_ARG, Fifo_Dequeue(NULL, &entry));
-    mu_assert_int_eq(FIFO_RET_INVALID_ARG, Fifo_Dequeue(fifo, NULL));
 
     // Empty dequeue
     mu_assert_int_eq(FIFO_RET_NO_DATA, Fifo_Dequeue(fifo, &entry));
@@ -67,7 +66,7 @@ MU_TEST(test_Fifo_Dequeue)
     mu_assert_int_eq(FIFO_RET_NO_DATA, Fifo_Dequeue(fifo, &entry));
 
     // Nominal dequeue until empty.
-    FifoIndex_t biggerCount = 3;
+    FifoIndex_t biggerCount = 4;
     uint8_t biggerData[FIFO_COMPUTE_SIZE(biggerCount, size)];
     fifo = Fifo_Init(biggerCount, size, data, sizeof(biggerData));
     for(int i = 0; i < biggerCount; i ++)
@@ -82,6 +81,19 @@ MU_TEST(test_Fifo_Dequeue)
     {
         mu_assert_int_eq(expectedValue, entry);
         expectedValue ++;
+    }
+    mu_assert_int_eq(FIFO_RET_NO_DATA, ret);
+
+    // Dequeue with NULL still works
+    for(int i = 0; i < biggerCount; i ++)
+    {
+        enqueuedValue = i;
+        mu_assert_int_eq((i + 1), Fifo_Enqueue(fifo, &enqueuedValue));
+    }
+    
+    for(ret = Fifo_Dequeue(fifo, NULL); ret >= 0; ret = Fifo_Dequeue(fifo, NULL))
+    {
+        mu_assert(ret >= 0, "Failed to dequeue with NULL buffer");
     }
     mu_assert_int_eq(FIFO_RET_NO_DATA, ret);
 }

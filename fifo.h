@@ -3,10 +3,25 @@
 
 #include <stdint.h>
 
+/**
+ * @brief Size of an entry or block of memory in bytes.
+ * Typedef'd to allow configuraiton on a per applicaton basis.
+ * Shrinking the width of the typedef reduces metadata overhead.
+ */
 typedef uint8_t FifoSize_t;
 
+/**
+ * @brief Index into a fIfo's entry data.
+ * To ensure concurrency, this must be atomic read/write for the target architecture.
+ * Typedef'd to allow configuraiton on a per applicaton basis.
+ * Shrinking the width of the typedef reduces metadata overhead.
+ */
 typedef uint8_t FifoIndex_t;
 
+/**
+ * @brief Fifo metadata. Declared here in the .h to support sizeof(Fifo_t) outside the library.
+ * Members of this structure should not be accessed outside of the provided Fifo_* APIs.
+ */
 typedef struct
 {
     FifoIndex_t writer;
@@ -16,6 +31,9 @@ typedef struct
     uint8_t status;
 } Fifo_t;
 
+/**
+ * @brief Return types for applicable Fifo_* APIs
+ */
 typedef enum {
     FIFO_RET_OK = 0,
     FIFO_RET_INVALID_ARG = -1,
@@ -25,7 +43,7 @@ typedef enum {
 
 /**
  * @brief Macro to compute the required memory footprint of a fifo.
- * Useful for creating statically sized buffers.
+ * Useful for creating statically sized buffers, if arguments are constants.
  *
  * @param entryCount number of entries in the fifo
  * @param entrySize Size of each element in B

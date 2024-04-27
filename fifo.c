@@ -11,6 +11,14 @@
 // Cast arbitrary type to fifo pointer
 #define pFifo(fifo) ((Fifo_t *)(fifo))
 
+// If set, the fifo is full
+#define STATUS_BIT_FULL_POS (0)
+#define STATUS_BIT_FULL_MASK (1 << STATUS_BIT_FULL_POS)
+
+#define isFull(fifo) (pFifo(fifo)->status & STATUS_BIT_FULL_MASK)
+#define setFull(fifo) (pFifo(fifo)->status |= STATUS_BIT_FULL_MASK)
+#define clearFull(fifo) (pFifo(fifo)->status &= ~STATUS_BIT_FULL_MASK)
+
 // Compute the address of the start of a fifo's entry data
 #define getDataPtr(fifo) ((void *)(fifo) + sizeof(Fifo_t))
 
@@ -22,14 +30,6 @@
 
 // Compute the number of entries in a fifo
 #define getEntryCount(fifo) ( (isFull(fifo)) ? pFifo(fifo)->maxEntryCount : wrapDistance(pFifo(fifo)->reader, pFifo(fifo)->writer, pFifo(fifo)->maxEntryCount))
-
-// If set, the fifo is full
-#define STATUS_BIT_FULL_POS (0)
-#define STATUS_BIT_FULL_MASK (1 << STATUS_BIT_FULL_POS)
-
-#define isFull(fifo) (pFifo(fifo)->status & STATUS_BIT_FULL_MASK)
-#define setFull(fifo) (pFifo(fifo)->status |= STATUS_BIT_FULL_MASK)
-#define clearFull(fifo) (pFifo(fifo)->status &= ~STATUS_BIT_FULL_MASK)
 
 Fifo_t *Fifo_Init(FifoIndex_t entryCount, FifoSize_t entrySize, uint8_t *buffer, size_t bufferSize)
 {
@@ -68,7 +68,7 @@ int Fifo_Enqueue(Fifo_t *fifo, void *entry)
 {
     if (NULL == fifo || NULL == entry)
     {
-        return -1;
+        return FIFO_RET_INVALID_ARG;
     }
 
     if(isFull(fifo))
@@ -88,15 +88,14 @@ int Fifo_Enqueue(Fifo_t *fifo, void *entry)
     
     fifo->writer = wrapIncrement(fifo->writer, fifo->maxEntryCount);
 
-    FifoIndex_t entryCount = getEntryCount(fifo);
     return getEntryCount(fifo);
 }
 
 int Fifo_Dequeue(Fifo_t *fifo, void *entry)
 {
-    if (NULL == fifo || NULL == entry)
+    if (NULL == fifo)
     {
-        return -1;
+        return FIFO_RET_INVALID_ARG;
     }
 
     if (getEntryCount(fifo) == 0)
@@ -104,7 +103,10 @@ int Fifo_Dequeue(Fifo_t *fifo, void *entry)
         return FIFO_RET_NO_DATA;
     }
 
-    memcpy(entry, getReaderPtr(fifo), fifo->entrySize);
+    if(entry != NULL)
+    {
+        memcpy(entry, getReaderPtr(fifo), fifo->entrySize);
+    }
     fifo->reader = wrapIncrement(fifo->reader, fifo->maxEntryCount);
     // Only clear the full status once there is a free space
     clearFull(fifo);
