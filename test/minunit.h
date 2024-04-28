@@ -220,6 +220,21 @@ static void (*minunit_teardown)(void) = NULL;
 	}\
 )
 
+
+#define mu_assert_ptr_eq(expected, result) MU__SAFE_BLOCK(\
+	void* minunit_tmp_e = (void*)(expected);\
+	void* minunit_tmp_r = (void*)(result);\
+	minunit_assert++;\
+	if (minunit_tmp_e != minunit_tmp_r) {\
+		(void)snprintf(minunit_last_message, MINUNIT_MESSAGE_LEN, "%s failed:\n\t%s:%d: %p expected but was %p", __func__, __FILE__, __LINE__, minunit_tmp_e, minunit_tmp_r);\
+		minunit_status = 1;\
+		return;\
+	} else {\
+		printf(".");\
+	}\
+)
+
+
 /*
  * The following two functions were written by David Robert Nadeau
  * from http://NadeauSoftware.com/ and distributed under the
