@@ -141,10 +141,10 @@ MU_TEST(test_Fifo_Peek)
     Fifo_t *fifo = Fifo_Init(count, size, data, sizeof(data));
     
     // Argument checks
-    mu_assert_int_eq(NULL, Fifo_Peek(NULL));
+    mu_assert_ptr_eq(NULL, Fifo_Peek(NULL));
 
     // Empty case
-    mu_assert_int_eq(NULL, Fifo_Peek(fifo));
+    mu_assert_ptr_eq(NULL, Fifo_Peek(fifo));
 
     // Nominal case 
     uint8_t entry = 0;
@@ -157,14 +157,14 @@ MU_TEST(test_Fifo_Peek)
     uint8_t *peekEntry = NULL;
     int peekCount = 0;
     uint8_t expectedValue = 0;
-    while((peekEntry = Fifo_Peek(fifo)) != NULL)
+    FIFO_PEEK_FOREACH(fifo, peekEntry)
     {
         mu_assert_int_eq(expectedValue, *peekEntry);
-        Fifo_Dequeue(fifo, NULL);
         peekCount ++;
         expectedValue ++;
     }
-    mu_assert_int_eq(peekEntry, Fifo_EntryCount(fifo));
+    mu_assert_ptr_eq(peekEntry, NULL);
+    mu_assert_int_eq(0, Fifo_EntryCount(fifo));
 }
 
 MU_TEST_SUITE(suite_Fifo_APIs)

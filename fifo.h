@@ -52,6 +52,11 @@ typedef enum {
 #define FIFO_COMPUTE_SIZE(entryCount, entrySize) ((FifoIndex_t)(entryCount) * (FifoSize_t)(entrySize) + sizeof(Fifo_t))
 
 /**
+ * @brief Macro to peek and dequeue each entry in a fifo
+ */
+#define FIFO_PEEK_FOREACH(fifoPtr, peekPtr) for(int fifo_foreach_ret = 0; fifo_foreach_ret >= 0 && (peekPtr = Fifo_Peek(fifo)) != NULL; fifo_foreach_ret = Fifo_Dequeue(fifo, NULL))
+
+/**
  * @brief Initialize a block of memory as a fifo.
  * Use @ref FIFO_COMPUTE_SIZE to determine the optimal buffer size.
  *
